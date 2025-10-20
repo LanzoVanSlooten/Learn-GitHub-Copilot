@@ -87,9 +87,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
-        signupForm.reset();
+  messageDiv.textContent = result.message;
+  messageDiv.className = "success";
+  signupForm.reset();
+  // Herlaad activiteiten zodat de deelnemerslijst direct wordt bijgewerkt
+  activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+  fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -111,4 +114,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize app
   fetchActivities();
+
+  // Event delegation voor delete-knoppen
+  activitiesList.addEventListener("click", async (event) => {
+    const btn = event.target.closest(".delete-participant");
+    if (!btn) return;
+    const activity = btn.getAttribute("data-activity");
+    const participant = btn.getAttribute("data-participant");
+    if (!activity || !participant) return;
+
+    try {
+      const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(participant)}`, {
+        method: "POST"
+      });
+      const result = await response.json();
+      if (response.ok) {
+        messageDiv.textContent = result.message || "Deelnemer verwijderd.";
+        messageDiv.className = "success";
+        // Herlaad activiteiten zodat de deelnemerslijst direct wordt bijgewerkt
+        activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+        fetchActivities();
+      } else {
+        messageDiv.textContent = result.detail || "Verwijderen mislukt.";
+        messageDiv.className = "error";
+      }
+      messageDiv.classList.remove("hidden");
+      setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+    } catch (error) {
+      messageDiv.textContent = "Verwijderen mislukt. Probeer opnieuw.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error deleting participant:", error);
+    }
+  });
 });
